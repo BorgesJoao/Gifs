@@ -1,0 +1,93 @@
+!pip install imageio[pillow]
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import UnivariateSpline
+from matplotlib.animation import FuncAnimation, PillowWriter
+from IPython.display import HTML
+
+
+# Dados fornecidos
+comprimento = np.array([ 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10,
+    10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5, 15, 15.5, 16, 16.5, 17, 17.5, 18, 18.5,
+    19, 19.5, 20, 20.5, 21, 21.5, 22, 22.5, 23, 23.5, 24, 24.5, 25, 25.5, 26, 26.5, 27,
+    27.5, 28, 28.5, 29, 29.5, 30, 30.5, 31, 31.5, 32, 32.5, 33, 33.5, 34, 34.5, 35, 35.5,
+    36, 36.5, 37, 37.5, 38, 38.5, 39, 39.5, 40, 40.5, 41, 41.5, 42, 42.5, 43, 43.5, 44,
+    44.5, 45, 45.5, 46, 46.5, 47, 47.5, 48, 48.5, 49, 49.5, 50, 50.5, 51, 51.5, 52, 52.5,
+    53, 53.5, 54, 54.5, 55, 55.5, 56, 56.5, 57, 57.5, 58, 58.5, 59, 59.5, 60, 60.5, 61,
+    61.5, 62, 62.5, 63, 63.5, 64, 64.5, 65, 65.5, 66, 66.5, 67, 67.5, 68, 68.5, 69, 69.5,
+    70, 70.5, 71, 71.5, 72, 72.5, 73, 73.5, 74, 74.5, 75, 75.5, 76, 76.5, 77, 77.5, 78,
+    78.5, 79, 79.5, 80, 80.5, 81, 81.5, 82, 82.5, 83, 83.5, 84, 84.5, 85, 85.5, 86, 86.5,
+    87, 87.5, 88, 88.5, 89, 89.5, 90, 90.5, 91, 91.5, 92, 92.5, 93, 93.5, 94, 94.5, 95,
+    95.5, 96, 96.5, 97, 97.5, 98, 98.5, 99, 99.5, 100, 100.5, 101, 101.5, 102, 102.5, 103,
+    103.5, 104, 104.5, 105, 105.5, 106, 106.5, 107, 107.5, 108, 108.5, 109, 109.5, 110,
+    110.5, 111])
+penetracao = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.124,
+    0.112, 0.15, 0.17, 0.21, 0.124, 0.5, 0.498, 0.497, 0.496, 0.403, 0.115, 0.4, 0.627,
+    0.77, 0.868, 0.867, 0.866, 0.773, 0.771, 0.77, 0.768, 0.767, 0.766, 0.256, 0.254,
+    0.253, 0.379, 0.606, 0.605, 0.603, 0.464, 0.6, 0.751, 0.46, 0.459, 0.457, 0.456, 0.454,
+    0.234, 0.3, 0.53, 0.297, 0.527, 0.526, 0.525, 0.291, 0.522, 0.52, 0.519, 0.517, 0.284,
+    0.515, 0.513, 0.512, 0.278, 0.509, 0.508, 0.506, 0.273, 0.271, 0.502, 0.268, 0.267,
+    0.266, 0.264, 0.263, 0.261, 0.26, 0.259, 0.318, 0.316, 0.315, 0.185, 0.181, 0.18, 0.687,
+    0.686, 0.394, 0.683, 0.681, 0.47, 0.526, 0.169, 0.267, 0.522, 0.52, 0.263, 0.517, 0.26,
+    0.457, 0.456, 0.256, 0.25, 0.662, 0.45, 0.25, 0.249, 0.446, 0.246, 0.244, 0.652, 0.65,
+    0.649, 0.495, 0.493, 0.492, 0.643, 0.733, 0.732, 0.486, 0.347, 0.346, 0.635, 0.481, 0.479,
+    0.478, 0.721, 0.475, 0.913, 0.335, 0.215, 0.213, 0.212, 0.39, 0.176, 0.172, 0.17, 0.202,
+    0.457, 0.199, 0.198, 0.196, 0.314, 0.45, 0.192, 0.447, 0.698, 0.688, 0.595, 0.515, 0.513,
+    0.438, 0.299, 0.435, 0.508, 0.295, 0.294, 0.292, 0.581, 0.5, 0.425, 0.498, 0.667, 0.574,
+    0.493, 0.418, 0.417, 0.489, 0.659, 0.627, 0.485, 0.153, 0.482, 0.621, 0.845, 0.933, 1.308,
+    1.436, 1.434, 0.926, 1.218, 1.3, 1.07, 1.214, 1.425, 1.211, 0.915, 1.207, 1.205, 0.821,
+    1.057, 1.414, 1.054, 0.816, 1.052, 1.5, 1.499, 1.047, 0.809, 1.044, 1.493, 1.042, 0.803,
+    0.576, 0.434, 0.222, 0.51, 0.514
+])
+
+# Suavizando os dados
+spl = UnivariateSpline(comprimento, penetracao, s=0.2)
+comprimento_suavizado = np.linspace(min(comprimento), max(comprimento), 500)
+penetracao_suavizada = spl(comprimento_suavizado)
+
+# Configuração do GIF
+fig, ax = plt.subplots()
+line, = ax.plot([], [], 'b-', lw=2, label="Penetração Suavizada")
+ax.set_xlim(0, max(comprimento))
+ax.set_ylim(5, 0)
+ax.set_xlabel('Comprimento do Cordão')
+#ax.set_ylabel('Penetração')
+ax.set_title('Progresso da Penetração')
+
+# Faixa de referência (25% a 80% do valor máximo)
+#max_penet = max(3,14)
+ref_min = 0.793
+ref_max = 2.54
+
+#line, = ax.plot([], [], lw=2, label= 'Penetração')
+ref_band = ax.fill_between(
+    comprimento, ref_min, ref_max, color='yellow', alpha=0.3, label='Faixa de referência'
+)
+legend = ax.legend(loc = 'lower right')
+
+
+# Adicionando legenda personalizada
+additional_legend = (
+    "Aluno: João Borges\n"
+    "Orientador: Rubelmar Neto\n"
+    "Universidade do Estado do Amazonas"
+)
+plt.text(
+    0.02, 0.05, additional_legend, transform=ax.transAxes,
+    fontsize=10, verticalalignment='baseline', bbox=dict(boxstyle='round', facecolor='white', alpha=0.5)
+)
+
+# Função para atualizar cada quadro
+def update(frame):
+    line.set_data(comprimento_suavizado[:frame], penetracao_suavizada[:frame])
+    return line,
+
+# Criação da animação
+frames = len(comprimento_suavizado)
+ani = FuncAnimation(fig, update, frames=frames, interval=50, blit=True)
+
+# Salvando o GIF
+ani.save("progressao_suavizada.gif", writer=PillowWriter(fps=10))
+plt.close()
+
+HTML(ani.to_jshtml())
