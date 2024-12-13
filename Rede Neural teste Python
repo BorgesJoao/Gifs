@@ -1,0 +1,137 @@
+#Treinamento e definição de modelo. 
+
+from tensorflow import keras
+from keras import layers
+
+def make_model(input_shape, num_classes):
+    inputs = keras.Input(shape=input_shape)
+
+    # Entry block
+    # x = layers.Rescaling(1.0 / 255)(inputs)
+    # x = layers.Conv2D(128, 3, strides=2, padding="same")(x)
+    # x = layers.BatchNormalization()(x)
+    # x = layers.Activation("relu")(x)
+
+    # previous_block_activation = x  # Set aside residual
+
+    # for size in [256, 512, 728]:
+    #     x = layers.Activation("relu")(x)
+    #     x = layers.SeparableConv2D(size, 3, padding="same")(x)
+    #     x = layers.BatchNormalization()(x)
+
+    #     x = layers.Activation("relu")(x)
+    #     x = layers.SeparableConv2D(size, 3, padding="same")(x)
+    #     x = layers.BatchNormalization()(x)
+
+    #     x = layers.MaxPooling2D(3, strides=2, padding="same")(x)
+
+    #     # Project residual
+    #     residual = layers.Conv2D(size, 1, strides=2, padding="same")(
+    #         previous_block_activation
+    #     )
+    #     x = layers.add([x, residual])  # Add back residual
+    #     previous_block_activation = x  # Set aside next residual
+
+    # x = layers.SeparableConv2D(1024, 3, padding="same")(x)
+    # x = layers.BatchNormalization()(x)
+    # x = layers.Activation("relu")(x)
+
+    # x = layers.GlobalAveragePooling2D()(x)
+    # if num_classes == 2:
+    #     units = 1
+    # else:
+    #     units = num_classes
+
+    # x = layers.Dropout(0.25)(x)
+    # We specify activation=None so as to return logits
+
+
+#Aqui tem uma RNN
+    # x = layers.SimpleRNN(64)(inputs) #
+    # x = layers.SimpleRNN(64)(x) #
+    # x = layers.Dense(64, activation='relu')(x) #
+
+#Aqui tem uma CNN mais simples que a que usei antes.
+
+    #x = layers.Rescaling(1.0 / 255)(inputs)
+    x = layers.Conv2D(64, 3, strides=2, padding="same")(inputs)
+   #x = layers.BatchNormalization()(x)
+   #x = layers.Activation("relu")(x)
+    x = layers.Flatten()(x)
+    x = layers.Dense(32)(x)
+
+
+    outputs = layers.Dense(1, activation=None)(x) #2 é o numero de classes que tenho, activation é o tipo de função
+    return keras.Model(inputs, outputs)
+
+# if __name__ == "__main__":
+#     image_size = (128, 128)
+#     model = make_model(input_shape=image_size + (3,), num_classes=2)
+#     # keras.utils.plot_model(model, show_shapes=True)
+#     model.summary()
+
+
+import tensorflow as tf
+from tensorflow import keras
+#from make_model import *
+import matplotlib.pyplot as plt
+import numpy as np
+
+epochs = 20
+image_size = (256,500,3)
+
+train_ds, val_ds = keras.utils.image_dataset_from_directory(
+    "/content/drive/MyDrive/TCC - VAMO VELHO/REDE NEURAL /ESPECTOGRAMAS",
+    validation_split=0.3,#Aqui é o percentual de imagens que serão usadas para validar a rede
+    label_mode="binary",
+    subset="both",
+    seed=1,
+    image_size=image_size[0:2],
+    # batch_size=batch_size,
+)
+
+plt.figure(figsize=(10, 10))
+for images, labels in train_ds.take(1):
+    for i in range(9):
+        ax = plt.subplot(3, 3, i + 1)
+        plt.imshow(np.array(images[i]).astype("uint8"))
+        plt.title(int(labels[i]))
+        plt.axis("off")
+
+model = make_model(input_shape=image_size, num_classes=2)
+
+callbacks = [
+    keras.callbacks.ModelCheckpoint("checkpoints/save_at_{epoch}.keras"),
+]
+model.compile(
+    optimizer=keras.optimizers.Adam(),
+    loss=keras.losses.BinaryCrossentropy(from_logits=True),
+    metrics=[keras.metrics.BinaryAccuracy(name="acc")],
+)
+model.fit(
+    train_ds,
+    epochs=epochs,
+    callbacks=callbacks,
+    validation_data=val_ds,
+)
+
+model.save('/content/drive/MyDrive/TCC - VAMO VELHO/REDE NEURAL /Modelos/final_model.keras')
+
+
+#inputando uma imagem de teste
+
+from tensorflow import keras
+import matplotlib.pyplot as plt
+
+
+model = keras.models.load_model('/content/drive/MyDrive/TCC - VAMO VELHO/REDE NEURAL /Modelos/final_model.keras')
+
+img = keras.utils.load_img("/content/drive/MyDrive/TCC - VAMO VELHO/REDE NEURAL /Inferencia/CP14.1AMPLITUDE.png", target_size=image_size)
+plt.imshow(img)
+
+img_array = keras.utils.img_to_array(img)
+img_array = keras.ops.expand_dims(img_array, 0)  # Create batch axis
+
+predictions = model.predict(img_array)
+score = float(keras.ops.sigmoid(predictions[0][0]))
+print(f"Esse espectograma representa {100 * (1 - score):.2f}% furo e {100 * score:.2f}% conforme.")
